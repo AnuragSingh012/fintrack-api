@@ -7,6 +7,8 @@ import {
   createTransactionRecord,
   deleteTransactionsByUser,
   findTransactionsByUser,
+  PaginatedTransactions,
+  TransactionPaginationOptions,
 } from './transaction.repository';
 
 function toObjectId(userId: string | Types.ObjectId): Types.ObjectId {
@@ -31,11 +33,12 @@ export async function createTransaction(
   });
 }
 
-/** Returns all transactions owned by a user. */
+/** Returns a page of transactions owned by a user. */
 export async function getTransactionsByUser(
   userId: string | Types.ObjectId,
-): Promise<TransactionDocument[]> {
-  return findTransactionsByUser(toObjectId(userId));
+  pagination: TransactionPaginationOptions = {},
+): Promise<PaginatedTransactions> {
+  return findTransactionsByUser(toObjectId(userId), pagination);
 }
 
 /** Deletes all transactions owned by a user and returns the number removed. */
