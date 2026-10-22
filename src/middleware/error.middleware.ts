@@ -1,6 +1,9 @@
 import { ErrorRequestHandler } from 'express';
 import { Error as MongooseError } from 'mongoose';
+import pino from 'pino';
 import { ZodError } from 'zod';
+
+const logger = pino();
 
 interface ValidationDetail {
   field: string;
@@ -12,6 +15,13 @@ interface ErrorResponse {
     message: string;
     details?: ValidationDetail[];
   };
+}
+
+export class AuthenticationError extends Error {
+  constructor() {
+    super('Authentication required');
+    this.name = 'AuthenticationError';
+  }
 }
 
 function validationDetail(field: string): ValidationDetail {
@@ -49,12 +59,17 @@ function createResponse(
 
 export const errorMiddleware: ErrorRequestHandler = (
   error: unknown,
-  _req,
+  req,
   res,
   next,
 ) => {
   if (res.headersSent) {
     next(error);
+    return;
+  }
+
+  if (error instanceof AuthenticationError) {
+    res.status(401).json(createResponse(error.message));
     return;
   }
 
@@ -82,5 +97,9 @@ export const errorMiddleware: ErrorRequestHandler = (
     return;
   }
 
+  logger.error(
+    { err: error, method: req.method, path: req.path },
+    'Unhandled server error',
+  );
   res.status(500).json(createResponse('Internal server error'));
 };
